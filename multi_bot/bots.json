@@ -1,0 +1,16 @@
+[
+    {
+        "platform": "wecom",
+        "webhook_url": "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=YOUR_KEY",
+        "secret": "",
+        "at_mobiles": [],
+        "at_all": false
+    },
+    {
+        "platform": "dingtalk",
+        "webhook_url": "https://oapi.dingtalk.com/robot/send?access_token=YOUR_TOKEN",
+        "secret": "YOUR_SECRET",
+        "at_mobiles": [],
+        "at_all": false
+    }
+]

@@ -1,0 +1,30 @@
+{
+    "name": "每日销售数据报表",
+    "data_sources": [
+        {
+            "name": "销售数据",
+            "type": "csv",
+            "params": {
+                "path": "sales_data.csv"
+            }
+        }
+    ],
+    "output_dir": "reports",
+    "output_formats": ["html", "xlsx"],
+    "charts": [
+        {
+            "title": "每日销售额趋势",
+            "type": "line",
+            "data": "销售数据",
+            "x": "日期",
+            "y": "销售额"
+        }
+    ],
+    "email_to": ["admin@example.com"],
+    "email_from": "report@example.com",
+    "smtp_host": "smtp.qq.com",
+    "smtp_port": 465,
+    "smtp_user": "",
+    "smtp_password": "",
+    "schedule": "daily"
+}
