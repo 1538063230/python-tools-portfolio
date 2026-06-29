@@ -135,6 +135,9 @@ class ReportGenerator:
 
     def fetch_all_data(self):
         """拉取所有数据源"""
+        print(f"⏱️  开始拉取数据源 ({datetime.now().strftime('%H:%M:%S')})")
+        print(f"📋 配置文件: 报表名称 = {self.config.name}")
+        print(f"📋 数据源数量: {len(self.config.data_sources)}")
         for source_def in self.config.data_sources:
             name = source_def.get("name", "unknown")
             source_type = source_def.get("type", "csv")
@@ -151,7 +154,9 @@ class ReportGenerator:
                 continue
 
             self.dataframes[name] = source.fetch()
-            print(f"📥 拉取 [{name}]: {self.dataframes[name].shape[0]} 行")
+            print(f"📥 拉取 [{name}]: {self.dataframes[name].shape[0]} 行 × {self.dataframes[name].shape[1]} 列")
+
+        print(f"✅ 数据准备就绪，开始生成报表")
 
     def generate_charts(self) -> list[str]:
         """生成图表"""
@@ -262,6 +267,7 @@ class ReportGenerator:
 
     def generate(self) -> dict:
         """生成所有格式的报表"""
+        print(f"⏱️  开始生成图表 ({datetime.now().strftime('%H:%M:%S')})")
         chart_paths = self.generate_charts()
         outputs = {}
 
@@ -275,6 +281,9 @@ class ReportGenerator:
         if "xlsx" in self.config.output_formats:
             outputs["xlsx"] = self.generate_excel(chart_paths)
 
+        print(f"⏱️  报表生成完成 ({datetime.now().strftime('%H:%M:%S')})")
+        print(f"📊 图表数量: {len(chart_paths)}")
+        print(f"📄 报表文件: {len(outputs)} 个")
         return outputs
 
     def send_email(self, outputs: dict):
