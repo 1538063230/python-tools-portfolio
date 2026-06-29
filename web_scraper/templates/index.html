@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>多平台网页数据采集器</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif; background: linear-gradient(135deg, #2196F3 0%, #0d47a1 100%); min-height: 100vh; padding: 20px; }
+        .container { max-width: 1100px; margin: 0 auto; background: white; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); overflow: hidden; }
+        header { background: linear-gradient(135deg, #2196F3 0%, #1565C0 100%); color: white; padding: 24px 32px; }
+        header h1 { font-size: 24px; margin-bottom: 4px; }
+        header p { opacity: 0.9; font-size: 14px; }
+        .github-link { float: right; color: white; text-decoration: none; font-size: 13px; opacity: 0.9; }
+        .content { padding: 32px; }
+        .card { background: #f8f9fa; border-radius: 8px; padding: 20px; margin-bottom: 20px; border: 1px solid #e0e0e0; }
+        .card h2 { color: #333; font-size: 16px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid #2196F3; }
+        .form-group { margin-bottom: 14px; }
+        .form-group label { display: block; font-size: 13px; color: #555; margin-bottom: 6px; font-weight: 500; }
+        .form-group input, .form-group textarea { width: 100%; padding: 10px 14px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; font-family: inherit; }
+        .form-group input:focus, .form-group textarea:focus { outline: none; border-color: #2196F3; box-shadow: 0 0 0 3px rgba(33,150,243,0.1); }
+        .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        button { background: #2196F3; color: white; border: none; padding: 12px 24px; font-size: 15px; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-weight: 500; }
+        button:hover { background: #1565C0; transform: translateY(-1px); }
+        button.secondary { background: #607D8B; }
+        button.secondary:hover { background: #455A64; }
+        .result-card { background: white; border-radius: 8px; padding: 16px; margin-top: 12px; border-left: 4px solid #2196F3; }
+        .result-meta { display: flex; gap: 16px; font-size: 13px; color: #666; margin-bottom: 12px; flex-wrap: wrap; }
+        .result-meta span { background: #f0f7ff; padding: 4px 10px; border-radius: 12px; }
+        .items-list { display: grid; gap: 10px; margin-top: 12px; }
+        .item { background: #f8f9fa; padding: 12px 14px; border-radius: 6px; border-left: 3px solid #4CAF50; }
+        .item .title { font-weight: 500; color: #333; margin-bottom: 4px; }
+        .item .meta { font-size: 12px; color: #888; }
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 6px; overflow: hidden; }
+        th { background: #2196F3; color: white; padding: 10px 8px; text-align: left; font-size: 13px; }
+        td { padding: 8px; border-bottom: 1px solid #eee; font-size: 13px; }
+        tr:hover td { background: #f5f5f5; }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 16px; }
+        .stat { background: linear-gradient(135deg, #2196F3 0%, #1565C0 100%); color: white; padding: 16px; border-radius: 8px; text-align: center; }
+        .stat .num { font-size: 24px; font-weight: bold; }
+        .stat .label { font-size: 12px; opacity: 0.9; margin-top: 4px; }
+        .loader { display: inline-block; border: 3px solid #f3f3f3; border-top: 3px solid #2196F3; border-radius: 50%; width: 16px; height: 16px; animation: spin 1s linear infinite; vertical-align: middle; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .empty { text-align: center; color: #999; padding: 30px; }
+        .download-btn { display: inline-block; background: #FF9800; color: white; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-size: 14px; margin-top: 10px; }
+        pre { background: #1e1e1e; color: #ecf0f1; padding: 14px; border-radius: 6px; font-size: 12px; overflow-x: auto; max-height: 300px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <a class="github-link" href="https://github.com/1538063230/python-tools-portfolio" target="_blank">GitHub源码 →</a>
+        <h1>🌐 多平台网页数据采集器</h1>
+        <p>静态页面与动态页面通用采集 · CSS选择器提取 · 自动翻页 · 多格式导出</p>
+    </header>
+    <div class="content">
+        <div class="card">
+            <h2>采集配置</h2>
+            <div class="form-group">
+                <label>目标URL</label>
+                <input type="text" id="url" placeholder="https://example.com 或 点击下方加载演示数据">
+            </div>
+            <div class="row">
+                <div class="form-group">
+                    <label>容器选择器 (可选)</label>
+                    <input type="text" id="container" placeholder="例如: div.news-item">
+                </div>
+                <div class="form-group">
+                    <label>字段配置 (JSON格式, 可选)</label>
+                    <input type="text" id="fields" placeholder='{"title":"h2.title","time":"span.time"}'>
+                </div>
+            </div>
+            <button onclick="runScrape()" id="scrapeBtn">🚀 开始采集</button>
+            <button onclick="runDemo()" class="secondary" style="margin-left:8px;">📚 演示模式</button>
+        </div>
+
+        <div class="card" id="resultCard" style="display:none;">
+            <h2>采集结果</h2>
+            <div class="stats" id="stats"></div>
+            <div id="resultContent"></div>
+        </div>
+    </div>
+</div>
+<script>
+async function runScrape() {
+    const url = document.getElementById('url').value.trim();
+    if (!url) { alert('请输入URL或点击演示模式'); return; }
+    const btn = document.getElementById('scrapeBtn');
+    btn.innerHTML = '<span class="loader"></span> 采集中...';
+    btn.disabled = true;
+    const payload = { url };
+    const container = document.getElementById('container').value.trim();
+    const fieldsStr = document.getElementById('fields').value.trim();
+    if (container) payload.container = container;
+    if (fieldsStr) {
+        try { payload.fields = JSON.parse(fieldsStr); }
+        catch(e) { alert('字段配置JSON格式错误'); btn.innerHTML='🚀 开始采集'; btn.disabled=false; return; }
+    }
+    try {
+        const res = await fetch('/api/scrape', {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.error) { alert(data.error); return; }
+        showResult(data.result);
+    } catch(e) { alert('采集失败: ' + e); }
+    btn.innerHTML = '🚀 开始采集';
+    btn.disabled = false;
+}
+
+async function runDemo() {
+    const res = await fetch('/api/demo');
+    const data = await res.json();
+    if (data.error) { alert(data.error); return; }
+    showResult(data.result);
+}
+
+function showResult(r) {
+    document.getElementById('resultCard').style.display = '';
+    const stats = `
+        <div class="stat"><div class="num">${r.items_count || 0}</div><div class="label">提取数据条数</div></div>
+        <div class="stat"><div class="num">${r.link_count || 0}</div><div class="label">链接数</div></div>
+        <div class="stat"><div class="num">${r.text_length || 0}</div><div class="label">正文字符</div></div>
+    `;
+    document.getElementById('stats').innerHTML = stats;
+    let html = `<div class="result-card">
+        <div class="result-meta">
+            <span>📄 ${r.title}</span>
+            <span>🌐 ${r.url}</span>
+            <span>⏰ ${r.fetched_at}</span>
+        </div>`;
+    if (r.items && r.items.length) {
+        html += '<h3 style="color:#333; font-size:14px; margin:12px 0 8px;">提取的数据项:</h3><div class="items-list">';
+        r.items.forEach(item => {
+            html += `<div class="item"><div class="title">${item.title || ''}</div><div class="meta">${item.source || ''} · ${item.time || ''}</div></div>`;
+        });
+        html += '</div>';
+        if (r.download_csv) html += `<a class="download-btn" href="${r.download_csv}" download>📥 下载CSV</a>`;
+    }
+    if (r.auto_extract) {
+        html += '<h3 style="color:#333; font-size:14px; margin:16px 0 8px;">自动提取:</h3>';
+        if (r.auto_extract.headings && r.auto_extract.headings.length) {
+            html += '<p style="font-size:13px; color:#666; margin-bottom:6px;"><strong>标题:</strong> ' + r.auto_extract.headings.join(' / ') + '</p>';
+        }
+        if (r.auto_extract.paragraphs && r.auto_extract.paragraphs.length) {
+            html += '<p style="font-size:13px; color:#666;"><strong>段落:</strong> ' + r.auto_extract.paragraphs.join(' / ') + '</p>';
+        }
+    }
+    if (r.text_preview) {
+        html += `<h3 style="color:#333; font-size:14px; margin:12px 0 8px;">正文预览:</h3><pre>${r.text_preview}</pre>`;
+    }
+    html += '</div>';
+    document.getElementById('resultContent').innerHTML = html;
+}
+</script>
+</body>
+</html>

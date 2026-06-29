@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>桌面批量文件管理工具</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif; background: linear-gradient(135deg, #FF9800 0%, #E65100 100%); min-height: 100vh; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); overflow: hidden; }
+        header { background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%); color: white; padding: 24px 32px; }
+        header h1 { font-size: 24px; margin-bottom: 4px; }
+        header p { opacity: 0.9; font-size: 14px; }
+        .github-link { float: right; color: white; text-decoration: none; font-size: 13px; opacity: 0.9; }
+        .content { padding: 32px; }
+        .card { background: #f8f9fa; border-radius: 8px; padding: 20px; margin-bottom: 20px; border: 1px solid #e0e0e0; }
+        .card h2 { color: #333; font-size: 16px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid #FF9800; }
+        .toolbar { display: flex; gap: 10px; align-items: center; margin-bottom: 14px; }
+        .toolbar input { flex: 1; padding: 10px 14px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
+        button { background: #FF9800; color: white; border: none; padding: 10px 18px; font-size: 14px; border-radius: 6px; cursor: pointer; transition: all 0.2s; }
+        button:hover { background: #F57C00; transform: translateY(-1px); }
+        button.danger { background: #F44336; }
+        button.danger:hover { background: #D32F2F; }
+        button.success { background: #4CAF50; }
+        button.success:hover { background: #388E3C; }
+        .tabs { display: flex; gap: 4px; margin-bottom: 16px; border-bottom: 2px solid #e0e0e0; }
+        .tab { padding: 10px 18px; cursor: pointer; border-bottom: 2px solid transparent; color: #666; font-size: 14px; transition: all 0.2s; }
+        .tab.active { color: #FF9800; border-bottom-color: #FF9800; font-weight: 500; }
+        .tab:hover { color: #FF9800; }
+        .panel { display: none; }
+        .panel.active { display: block; }
+        .file-list { max-height: 400px; overflow-y: auto; border: 1px solid #e0e0e0; border-radius: 6px; }
+        .file-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-bottom: 1px solid #f0f0f0; }
+        .file-row:hover { background: #fff3e0; }
+        .file-row:last-child { border-bottom: none; }
+        .file-icon { font-size: 18px; margin-right: 10px; }
+        .file-name { flex: 1; color: #333; font-size: 14px; }
+        .file-meta { color: #888; font-size: 12px; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+        .form-group label { display: block; font-size: 13px; color: #555; margin-bottom: 6px; font-weight: 500; }
+        .form-group input { width: 100%; padding: 8px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
+        .checkbox-row { display: flex; align-items: center; gap: 8px; margin: 10px 0; }
+        .checkbox-row input { width: 18px; height: 18px; }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
+        .stat { background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%); color: white; padding: 16px; border-radius: 8px; text-align: center; }
+        .stat .num { font-size: 24px; font-weight: bold; }
+        .stat .label { font-size: 12px; opacity: 0.9; margin-top: 4px; }
+        table { width: 100%; border-collapse: collapse; background: white; }
+        th { background: #FF9800; color: white; padding: 10px; text-align: left; font-size: 13px; }
+        td { padding: 8px 10px; border-bottom: 1px solid #eee; font-size: 13px; }
+        tr:hover td { background: #fff3e0; }
+        .dup-group { background: white; padding: 12px; border-radius: 6px; margin-bottom: 10px; border-left: 3px solid #F44336; }
+        .dup-group h4 { color: #333; margin-bottom: 6px; font-size: 14px; }
+        .dup-files { font-size: 13px; color: #555; }
+        .dup-files div { padding: 4px 0; }
+        .loader { display: inline-block; border: 3px solid #f3f3f3; border-top: 3px solid #FF9800; border-radius: 50%; width: 14px; height: 14px; animation: spin 1s linear infinite; vertical-align: middle; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .empty { text-align: center; color: #999; padding: 30px; }
+        .breadcrumb { font-size: 13px; color: #666; margin-bottom: 8px; }
+        .breadcrumb a { color: #FF9800; text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <a class="github-link" href="https://github.com/1538063230/python-tools-portfolio" target="_blank">GitHub源码 →</a>
+        <h1>🗂️ 桌面批量文件管理工具</h1>
+        <p>批量重命名 · 分类整理 · 重复查找 · 文件统计</p>
+    </header>
+    <div class="content">
+        <div class="card">
+            <h2>选择目录</h2>
+            <div class="toolbar">
+                <input type="text" id="dirInput" value="{{ default_dir }}" placeholder="输入目录路径">
+                <button onclick="loadFiles()">浏览</button>
+                <button onclick="goHome()" class="success">🏠 主目录</button>
+            </div>
+            <div class="breadcrumb" id="breadcrumb"></div>
+        </div>
+
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('files')">📁 文件列表</div>
+            <div class="tab" onclick="switchTab('rename')">✏️ 批量重命名</div>
+            <div class="tab" onclick="switchTab('organize')">📂 分类整理</div>
+            <div class="tab" onclick="switchTab('duplicates')">🔍 重复查找</div>
+            <div class="tab" onclick="switchTab('stats')">📊 文件统计</div>
+        </div>
+
+        <div class="panel active" id="panel-files">
+            <div class="card">
+                <h2>文件列表 <span id="fileCount" style="font-size:13px; color:#888;"></span></h2>
+                <div class="file-list" id="fileList">
+                    <div class="empty">点击上方"浏览"加载文件</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel" id="panel-rename">
+            <div class="card">
+                <h2>批量重命名配置</h2>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>前缀</label>
+                        <input type="text" id="prefix" placeholder="例如: photo_">
+                    </div>
+                    <div class="form-group">
+                        <label>后缀</label>
+                        <input type="text" id="suffix" placeholder="例如: _new">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>查找</label>
+                        <input type="text" id="find" placeholder="例如: IMG_">
+                    </div>
+                    <div class="form-group">
+                        <label>替换为</label>
+                        <input type="text" id="replace" placeholder="例如: 照片_">
+                    </div>
+                </div>
+                <div class="checkbox-row">
+                    <input type="checkbox" id="useRegex">
+                    <label for="useRegex">使用正则表达式</label>
+                </div>
+                <button onclick="runRename()" id="renameBtn">✏️ 开始重命名</button>
+                <div id="renameResult" style="margin-top: 14px;"></div>
+            </div>
+        </div>
+
+        <div class="panel" id="panel-organize">
+            <div class="card">
+                <h2>按扩展名自动分类</h2>
+                <p style="color:#666; font-size:14px; margin-bottom:12px;">将当前目录下所有文件按扩展名归类到子文件夹</p>
+                <button onclick="runOrganize()" id="organizeBtn">📂 开始整理</button>
+                <div id="organizeResult" style="margin-top: 14px;"></div>
+            </div>
+        </div>
+
+        <div class="panel" id="panel-duplicates">
+            <div class="card">
+                <h2>重复文件查找 (基于MD5)</h2>
+                <button onclick="runDuplicates()" id="dupBtn">🔍 查找重复</button>
+                <div id="dupResult" style="margin-top: 14px;"></div>
+            </div>
+        </div>
+
+        <div class="panel" id="panel-stats">
+            <div class="card">
+                <h2>文件统计</h2>
+                <button onclick="loadStats()" id="statsBtn">📊 刷新统计</button>
+                <div id="statsResult" style="margin-top: 14px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+let currentDir = '{{ default_dir }}';
+
+function switchTab(name) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    event.target.classList.add('active');
+    document.getElementById('panel-' + name).classList.add('active');
+}
+
+function goHome() {
+    document.getElementById('dirInput').value = '{{ default_dir }}';
+    loadFiles();
+}
+
+async function loadFiles() {
+    currentDir = document.getElementById('dirInput').value.trim();
+    if (!currentDir) return;
+    const res = await fetch('/api/list?dir=' + encodeURIComponent(currentDir));
+    const data = await res.json();
+    if (data.error) { alert(data.error); return; }
+    document.getElementById('fileCount').textContent = `(${data.total_files} 个文件, ${data.total_dirs} 个目录)`;
+    const breadcrumb = data.parent ? `<a href="#" onclick="goTo('${data.parent}');return false;">返回上级</a> → ${data.current}` : data.current;
+    document.getElementById('breadcrumb').innerHTML = breadcrumb;
+    let html = '';
+    data.dirs.forEach(d => {
+        html += `<div class="file-row" onclick="goTo('${d.path}')" style="cursor:pointer;">
+            <span class="file-icon">📁</span>
+            <span class="file-name">${d.name}</span>
+            <span class="file-meta">${d.modified}</span>
+        </div>`;
+    });
+    data.files.forEach(f => {
+        const icon = getIcon(f.ext);
+        html += `<div class="file-row">
+            <span class="file-icon">${icon}</span>
+            <span class="file-name">${f.name}</span>
+            <span class="file-meta">${f.size_str} · ${f.modified}</span>
+        </div>`;
+    });
+    document.getElementById('fileList').innerHTML = html || '<div class="empty">空目录</div>';
+}
+
+function goTo(path) {
+    document.getElementById('dirInput').value = path;
+    loadFiles();
+}
+
+function getIcon(ext) {
+    const map = {'.jpg':'🖼️', '.png':'🖼️', '.gif':'🖼️', '.pdf':'📄', '.doc':'📄', '.docx':'📄',
+        '.xls':'📊', '.xlsx':'📊', '.csv':'📊', '.txt':'📝', '.md':'📝', '.mp3':'🎵', '.mp4':'🎬',
+        '.zip':'📦', '.py':'🐍', '.js':'📜', '.html':'🌐'};
+    return map[ext] || '📄';
+}
+
+async function runRename() {
+    const btn = document.getElementById('renameBtn');
+    btn.innerHTML = '<span class="loader"></span> 重命名中...';
+    btn.disabled = true;
+    const payload = {
+        dir: currentDir,
+        prefix: document.getElementById('prefix').value,
+        suffix: document.getElementById('suffix').value,
+        find: document.getElementById('find').value,
+        replace: document.getElementById('replace').value,
+        use_regex: document.getElementById('useRegex').checked,
+    };
+    const res = await fetch('/api/rename', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    btn.innerHTML = '✏️ 开始重命名';
+    btn.disabled = false;
+    if (data.error) { alert(data.error); return; }
+    let html = `<div class="stats"><div class="stat"><div class="num">${data.renamed}</div><div class="label">重命名文件数</div></div></div>`;
+    if (data.changes && data.changes.length) {
+        html += '<table><thead><tr><th>原文件名</th><th>新文件名</th></tr></thead><tbody>';
+        data.changes.forEach(c => html += `<tr><td>${c.old}</td><td>${c.new}</td></tr>`);
+        html += '</tbody></table>';
+    }
+    document.getElementById('renameResult').innerHTML = html;
+}
+
+async function runOrganize() {
+    if (!confirm('确定要整理该目录吗？文件将被移动到子文件夹。')) return;
+    const btn = document.getElementById('organizeBtn');
+    btn.innerHTML = '<span class="loader"></span> 整理中...';
+    btn.disabled = true;
+    const res = await fetch('/api/organize', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({dir: currentDir})
+    });
+    const data = await res.json();
+    btn.innerHTML = '📂 开始整理';
+    btn.disabled = false;
+    if (data.error) { alert(data.error); return; }
+    let html = `<div class="stats"><div class="stat"><div class="num">${data.total_moved}</div><div class="label">移动文件</div></div>
+        <div class="stat"><div class="num">${Object.keys(data.categories).length}</div><div class="label">分类数</div></div></div>`;
+    html += '<table><thead><tr><th>扩展名</th><th>文件数</th></tr></thead><tbody>';
+    Object.entries(data.categories).sort((a,b) => b[1]-a[1]).forEach(([ext, count]) => {
+        html += `<tr><td>${ext || '无扩展名'}</td><td>${count}</td></tr>`;
+    });
+    html += '</tbody></table>';
+    document.getElementById('organizeResult').innerHTML = html;
+}
+
+async function runDuplicates() {
+    const btn = document.getElementById('dupBtn');
+    btn.innerHTML = '<span class="loader"></span> 查找中...';
+    btn.disabled = true;
+    const res = await fetch('/api/duplicates', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({dir: currentDir})
+    });
+    const data = await res.json();
+    btn.innerHTML = '🔍 查找重复';
+    btn.disabled = false;
+    if (data.error) { alert(data.error); return; }
+    let html = `<div class="stats"><div class="stat"><div class="num">${data.total_groups}</div><div class="label">重复组</div></div>
+        <div class="stat"><div class="num">${data.total_waste}</div><div class="label">可清理</div></div></div>`;
+    if (data.groups && data.groups.length) {
+        data.groups.forEach(g => {
+            html += `<div class="dup-group"><h4>重复组 (MD5: ${g.hash}, ${g.count} 个文件)</h4><div class="dup-files">`;
+            g.files.forEach(f => html += `<div>📄 ${f}</div>`);
+            html += '</div></div>';
+        });
+    } else {
+        html += '<div class="empty">未发现重复文件</div>';
+    }
+    document.getElementById('dupResult').innerHTML = html;
+}
+
+async function loadStats() {
+    const btn = document.getElementById('statsBtn');
+    btn.innerHTML = '<span class="loader"></span> 统计中...';
+    btn.disabled = true;
+    const res = await fetch('/api/stats', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({dir: currentDir})
+    });
+    const data = await res.json();
+    btn.innerHTML = '📊 刷新统计';
+    btn.disabled = false;
+    if (data.error) { alert(data.error); return; }
+    const s = data.stats;
+    let html = `<div class="stats"><div class="stat"><div class="num">${s.file_count}</div><div class="label">文件总数</div></div>
+        <div class="stat"><div class="num">${s.total_size_mb}</div><div class="label">总大小(MB)</div></div>
+        <div class="stat"><div class="num">${Object.keys(s.ext_count).length}</div><div class="label">扩展名种类</div></div></div>`;
+    const sorted = Object.entries(s.ext_count).sort((a,b) => b[1]-a[1]).slice(0, 15);
+    html += '<table><thead><tr><th>扩展名</th><th>数量</th><th>大小(MB)</th></tr></thead><tbody>';
+    sorted.forEach(([ext, count]) => {
+        html += `<tr><td>${ext || '无扩展名'}</td><td>${count}</td><td>${(s.ext_size[ext] || 0).toFixed(4)}</td></tr>`;
+    });
+    html += '</tbody></table>';
+    document.getElementById('statsResult').innerHTML = html;
+}
+
+loadFiles();
+</script>
+</body>
+</html>

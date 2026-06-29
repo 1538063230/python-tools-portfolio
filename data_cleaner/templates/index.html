@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>CSV智能数据清洗与合并工具</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
+        .container { max-width: 1100px; margin: 0 auto; background: white; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); overflow: hidden; }
+        header { background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%); color: white; padding: 24px 32px; }
+        header h1 { font-size: 24px; margin-bottom: 4px; }
+        header p { opacity: 0.9; font-size: 14px; }
+        .content { padding: 32px; }
+        .card { background: #f8f9fa; border-radius: 8px; padding: 20px; margin-bottom: 20px; border: 1px solid #e0e0e0; }
+        .card h2 { color: #333; font-size: 16px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid #4CAF50; }
+        .upload-area { border: 2px dashed #4CAF50; border-radius: 8px; padding: 30px; text-align: center; cursor: pointer; transition: all 0.3s; background: #f1f8e9; }
+        .upload-area:hover { background: #e8f5e9; transform: scale(1.01); }
+        .upload-area.dragover { background: #c8e6c9; border-color: #2E7D32; }
+        .upload-area p { color: #555; margin-top: 8px; font-size: 14px; }
+        .file-list { margin-top: 12px; }
+        .file-item { background: white; padding: 10px 14px; border-radius: 6px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; border-left: 3px solid #4CAF50; }
+        .file-item .name { font-weight: 500; color: #333; }
+        .file-item .info { color: #888; font-size: 13px; }
+        .options { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin: 16px 0; }
+        .option { display: flex; align-items: center; gap: 8px; padding: 10px; background: white; border-radius: 6px; border: 1px solid #e0e0e0; }
+        .option label { cursor: pointer; flex: 1; font-size: 14px; }
+        .option input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; }
+        .option input[type="text"], .option select { padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; width: 100%; }
+        button { background: #4CAF50; color: white; border: none; padding: 12px 24px; font-size: 15px; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-weight: 500; }
+        button:hover { background: #2E7D32; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(76,175,80,0.3); }
+        button:disabled { background: #ccc; cursor: not-allowed; transform: none; }
+        .result { margin-top: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 12px; background: white; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
+        th { background: #4CAF50; color: white; padding: 12px 8px; text-align: left; font-size: 13px; font-weight: 500; }
+        td { padding: 10px 8px; border-bottom: 1px solid #eee; font-size: 13px; color: #333; }
+        tr:hover td { background: #f5f5f5; }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 16px; }
+        .stat { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 16px; border-radius: 8px; text-align: center; }
+        .stat .num { font-size: 24px; font-weight: bold; }
+        .stat .label { font-size: 12px; opacity: 0.9; margin-top: 4px; }
+        .download-buttons { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+        .download-buttons a { padding: 8px 16px; border-radius: 6px; text-decoration: none; color: white; font-size: 14px; }
+        .btn-csv { background: #2196F3; }
+        .btn-xlsx { background: #4CAF50; }
+        .btn-json { background: #FF9800; }
+        .download-buttons a:hover { opacity: 0.9; transform: translateY(-1px); }
+        .preview-files { margin-top: 12px; }
+        .preview-file { background: white; padding: 14px; border-radius: 6px; margin-bottom: 10px; border-left: 3px solid #2196F3; }
+        .preview-file h4 { color: #333; margin-bottom: 6px; }
+        .preview-file .meta { font-size: 12px; color: #888; margin-bottom: 8px; }
+        .preview-file table { font-size: 12px; }
+        .preview-file th { padding: 6px; font-size: 12px; }
+        .preview-file td { padding: 6px; }
+        .report { background: #1e1e1e; color: #ecf0f1; padding: 16px; border-radius: 6px; font-family: "Courier New", monospace; font-size: 13px; line-height: 1.6; margin-top: 16px; white-space: pre-wrap; }
+        .empty { text-align: center; color: #999; padding: 40px; }
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 500; margin-left: 8px; }
+        .badge-success { background: #c8e6c9; color: #2E7D32; }
+        .loader { display: inline-block; border: 3px solid #f3f3f3; border-top: 3px solid #4CAF50; border-radius: 50%; width: 16px; height: 16px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .github-link { float: right; color: white; text-decoration: none; font-size: 13px; opacity: 0.9; }
+        .github-link:hover { opacity: 1; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <a class="github-link" href="https://github.com/1538063230/python-tools-portfolio" target="_blank">GitHub源码 →</a>
+        <h1>📊 CSV智能数据清洗与合并工具</h1>
+        <p>多文件智能合并 · 数据清洗流水线 · 多格式导出 · 数据质量报告</p>
+    </header>
+    <div class="content">
+        <div class="card">
+            <h2>1. 上传CSV文件</h2>
+            <div class="upload-area" id="dropZone" onclick="document.getElementById('fileInput').click()">
+                <div style="font-size: 48px;">📁</div>
+                <p><strong>点击或拖拽文件到此处</strong></p>
+                <p>支持多个CSV文件 · 自动合并</p>
+                <input type="file" id="fileInput" multiple accept=".csv" style="display:none">
+            </div>
+            <div class="file-list" id="fileList"></div>
+            <div style="margin-top: 12px;">
+                <button onclick="uploadFiles()" id="uploadBtn" disabled>⬆ 上传文件</button>
+                <button onclick="loadSample()" style="background:#2196F3; margin-left:8px;">📚 加载示例数据</button>
+            </div>
+        </div>
+
+        <div class="card" id="previewCard" style="display:none;">
+            <h2>2. 文件预览</h2>
+            <div class="preview-files" id="previewFiles"></div>
+        </div>
+
+        <div class="card" id="optionsCard" style="display:none;">
+            <h2>3. 清洗选项</h2>
+            <div class="options">
+                <div class="option">
+                    <input type="checkbox" id="dedup" checked>
+                    <label for="dedup">去重</label>
+                </div>
+                <div class="option">
+                    <input type="checkbox" id="detectOutliers">
+                    <label for="detectOutliers">检测异常值</label>
+                </div>
+                <div class="option">
+                    <label style="font-size:13px;">空值处理:</label>
+                    <select id="fillNa">
+                        <option value="auto">自动填充</option>
+                        <option value="drop">删除空值行</option>
+                    </select>
+                </div>
+                <div class="option">
+                    <label style="font-size:13px;">合并字段:</label>
+                    <input type="text" id="mergeOn" placeholder="留空=纵向拼接">
+                </div>
+            </div>
+            <button onclick="runClean()" id="cleanBtn">🚀 开始清洗</button>
+        </div>
+
+        <div class="card result" id="resultCard" style="display:none;">
+            <h2>4. 清洗结果</h2>
+            <div class="stats" id="stats"></div>
+            <div class="download-buttons" id="downloads"></div>
+            <div style="margin-top:20px;">
+                <h3 style="color:#333; font-size:15px; margin-bottom:8px;">数据预览 (前20行)</h3>
+                <div style="overflow-x:auto;">
+                    <table id="resultTable"></table>
+                </div>
+            </div>
+            <div class="report" id="report"></div>
+        </div>
+    </div>
+</div>
+<script>
+let selectedFiles = [];
+let sessionId = null;
+
+const fileInput = document.getElementById('fileInput');
+const dropZone = document.getElementById('dropZone');
+
+fileInput.addEventListener('change', e => {
+    selectedFiles = Array.from(e.target.files);
+    renderFileList();
+    document.getElementById('uploadBtn').disabled = selectedFiles.length === 0;
+});
+
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+    selectedFiles = Array.from(e.dataTransfer.files).filter(f => f.name.endsWith('.csv'));
+    renderFileList();
+    document.getElementById('uploadBtn').disabled = selectedFiles.length === 0;
+});
+
+function renderFileList() {
+    const html = selectedFiles.map(f => `
+        <div class="file-item">
+            <span class="name">📄 ${f.name}</span>
+            <span class="info">${(f.size/1024).toFixed(1)} KB</span>
+        </div>
+    `).join('');
+    document.getElementById('fileList').innerHTML = html || '<div class="empty">尚未选择文件</div>';
+}
+
+async function uploadFiles() {
+    const btn = document.getElementById('uploadBtn');
+    btn.innerHTML = '<span class="loader"></span> 上传中...';
+    btn.disabled = true;
+    const formData = new FormData();
+    selectedFiles.forEach(f => formData.append('files', f));
+    try {
+        const res = await fetch('/api/upload', { method: 'POST', body: formData });
+        const data = await res.json();
+        if (data.error) { alert(data.error); return; }
+        sessionId = data.session_id;
+        await previewFiles();
+        document.getElementById('previewCard').style.display = '';
+        document.getElementById('optionsCard').style.display = '';
+        btn.innerHTML = '✓ 上传成功';
+    } catch(e) { alert('上传失败: ' + e); btn.innerHTML = '⬆ 上传文件'; btn.disabled = false; }
+}
+
+async function loadSample() {
+    const samples = ['sales_jan.csv', 'sales_feb.csv', 'sales_mar.csv'];
+    const formData = new FormData();
+    for (const name of samples) {
+        const res = await fetch(`/sample_data/${name}`);
+        const blob = await res.blob();
+        const file = new File([blob], name, { type: 'text/csv' });
+        formData.append('files', file);
+        selectedFiles.push(file);
+    }
+    renderFileList();
+    document.getElementById('uploadBtn').disabled = false;
+}
+
+async function previewFiles() {
+    const res = await fetch('/api/preview', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ session_id: sessionId })
+    });
+    const data = await res.json();
+    const html = (data.files || []).map(f => {
+        if (f.error) return `<div class="preview-file"><h4>📄 ${f.name}</h4><div class="meta">错误: ${f.error}</div></div>`;
+        const headHtml = f.head.length ? `
+            <table><thead><tr>${f.columns.map(c => `<th>${c}</th>`).join('')}</tr></thead>
+            <tbody>${f.head.map(r => `<tr>${f.columns.map(c => `<td>${r[c] ?? ''}</td>`).join('')}</tr>`).join('')}</tbody></table>
+        ` : '<div class="empty">空文件</div>';
+        return `<div class="preview-file">
+            <h4>📄 ${f.name} <span class="badge badge-success">${f.rows}行 × ${f.cols}列</span></h4>
+            ${headHtml}
+        </div>`;
+    }).join('');
+    document.getElementById('previewFiles').innerHTML = html;
+}
+
+async function runClean() {
+    const btn = document.getElementById('cleanBtn');
+    btn.innerHTML = '<span class="loader"></span> 清洗中...';
+    btn.disabled = true;
+    const payload = {
+        session_id: sessionId,
+        dedup: document.getElementById('dedup').checked,
+        detect_outliers: document.getElementById('detectOutliers').checked,
+        fill_na: document.getElementById('fillNa').value,
+        merge_on: document.getElementById('mergeOn').value || null,
+    };
+    try {
+        const res = await fetch('/api/clean', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.error) { alert(data.error); return; }
+        showResult(data);
+    } catch(e) { alert('清洗失败: ' + e); }
+    btn.innerHTML = '🚀 开始清洗';
+    btn.disabled = false;
+}
+
+function showResult(data) {
+    document.getElementById('resultCard').style.display = '';
+    document.getElementById('stats').innerHTML = `
+        <div class="stat"><div class="num">${data.rows}</div><div class="label">总行数</div></div>
+        <div class="stat"><div class="num">${data.cols}</div><div class="label">总列数</div></div>
+    `;
+    document.getElementById('downloads').innerHTML = `
+        <a class="btn-csv" href="${data.files.csv}" download>📥 下载 CSV</a>
+        <a class="btn-xlsx" href="${data.files.xlsx}" download>📥 下载 Excel</a>
+        <a class="btn-json" href="${data.files.json}" download>📥 下载 JSON</a>
+    `;
+    let tableHtml = '<thead><tr>';
+    data.columns.forEach(c => tableHtml += `<th>${c}</th>`);
+    tableHtml += '</tr></thead><tbody>';
+    data.preview.forEach(r => {
+        tableHtml += '<tr>';
+        data.columns.forEach(c => tableHtml += `<td>${r[c] ?? ''}</td>`);
+        tableHtml += '</tr>';
+    });
+    tableHtml += '</tbody>';
+    document.getElementById('resultTable').innerHTML = tableHtml;
+    document.getElementById('report').textContent = data.report;
+}
+</script>
+</body>
+</html>

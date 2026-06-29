@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>多平台消息推送机器人</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif; background: linear-gradient(135deg, #00BCD4 0%, #006064 100%); min-height: 100vh; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); overflow: hidden; }
+        header { background: linear-gradient(135deg, #00BCD4 0%, #00838F 100%); color: white; padding: 24px 32px; }
+        header h1 { font-size: 24px; margin-bottom: 4px; }
+        header p { opacity: 0.9; font-size: 14px; }
+        .github-link { float: right; color: white; text-decoration: none; font-size: 13px; opacity: 0.9; }
+        .content { padding: 32px; }
+        .card { background: #f8f9fa; border-radius: 8px; padding: 20px; margin-bottom: 20px; border: 1px solid #e0e0e0; }
+        .card h2 { color: #333; font-size: 16px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid #00BCD4; }
+        .tabs { display: flex; gap: 4px; margin-bottom: 16px; border-bottom: 2px solid #e0e0e0; }
+        .tab { padding: 10px 18px; cursor: pointer; border-bottom: 2px solid transparent; color: #666; font-size: 14px; transition: all 0.2s; }
+        .tab.active { color: #00BCD4; border-bottom-color: #00BCD4; font-weight: 500; }
+        .panel { display: none; }
+        .panel.active { display: block; }
+        .form-group { margin-bottom: 14px; }
+        .form-group label { display: block; font-size: 13px; color: #555; margin-bottom: 6px; font-weight: 500; }
+        .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 10px 14px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; font-family: inherit; }
+        .form-group textarea { min-height: 100px; resize: vertical; font-family: "Courier New", monospace; }
+        button { background: #00BCD4; color: white; border: none; padding: 12px 24px; font-size: 15px; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-weight: 500; }
+        button:hover { background: #00838F; transform: translateY(-1px); }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        .platforms { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-bottom: 14px; }
+        .platform-card { background: white; padding: 14px; border-radius: 8px; border: 2px solid #e0e0e0; cursor: pointer; transition: all 0.2s; }
+        .platform-card:hover { border-color: #00BCD4; }
+        .platform-card.active { border-color: #00BCD4; background: #e0f7fa; }
+        .platform-card .name { font-weight: 500; color: #333; margin-bottom: 4px; }
+        .platform-card .status { font-size: 12px; color: #888; }
+        .platform-card .icon { font-size: 24px; }
+        .template-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-bottom: 14px; }
+        .template-card { background: white; padding: 14px; border-radius: 6px; border-left: 3px solid #00BCD4; cursor: pointer; transition: all 0.2s; }
+        .template-card:hover { transform: translateX(2px); box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .template-card.active { background: #e0f7fa; }
+        .template-card h4 { color: #333; font-size: 14px; margin-bottom: 4px; }
+        .template-card p { font-size: 12px; color: #888; }
+        .preview { background: #1e1e1e; color: #ecf0f1; padding: 16px; border-radius: 6px; font-family: "Courier New", monospace; font-size: 13px; line-height: 1.6; white-space: pre-wrap; margin-top: 12px; max-height: 300px; overflow-y: auto; }
+        .result-list { margin-top: 14px; }
+        .result-item { background: white; padding: 14px; border-radius: 6px; margin-bottom: 10px; border-left: 4px solid #4CAF50; }
+        .result-item.fail { border-left-color: #F44336; }
+        .result-item.demo { border-left-color: #FF9800; }
+        .result-item .platform { font-weight: 500; color: #333; margin-bottom: 4px; }
+        .result-item .status { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 500; margin-left: 8px; }
+        .status-success { background: #c8e6c9; color: #2E7D32; }
+        .status-demo { background: #ffe0b2; color: #E65100; }
+        .status-fail { background: #ffcdd2; color: #C62828; }
+        .history-item { background: white; padding: 12px; border-radius: 6px; margin-bottom: 8px; border-left: 3px solid #00BCD4; }
+        .history-item .time { font-size: 12px; color: #888; }
+        .history-item .title { font-weight: 500; color: #333; margin: 4px 0; }
+        .history-item .content { font-size: 13px; color: #555; }
+        .loader { display: inline-block; border: 3px solid #f3f3f3; border-top: 3px solid #00BCD4; border-radius: 50%; width: 14px; height: 14px; animation: spin 1s linear infinite; vertical-align: middle; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .sign-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+        .sign-card { background: white; padding: 14px; border-radius: 6px; border-left: 3px solid; }
+        .sign-card.wecom { border-color: #07C160; }
+        .sign-card.dingtalk { border-color: #0089FF; }
+        .sign-card.feishu { border-color: #3370FF; }
+        .sign-card h4 { font-size: 14px; margin-bottom: 6px; }
+        .sign-card .value { font-family: monospace; font-size: 12px; color: #666; word-break: break-all; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <a class="github-link" href="https://github.com/1538063230/python-tools-portfolio" target="_blank">GitHub源码 →</a>
+        <h1>🤖 多平台消息推送机器人</h1>
+        <p>企业微信 · 钉钉 · 飞书 三平台统一推送 · 消息模板 · 签名算法</p>
+    </header>
+    <div class="content">
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('send')">📨 发送消息</div>
+            <div class="tab" onclick="switchTab('templates')">📝 消息模板</div>
+            <div class="tab" onclick="switchTab('sign')">🔏 签名算法</div>
+            <div class="tab" onclick="switchTab('history')">📜 发送历史</div>
+        </div>
+
+        <!-- 发送消息 -->
+        <div class="panel active" id="panel-send">
+            <div class="card">
+                <h2>选择目标平台</h2>
+                <div class="platforms" id="platforms"></div>
+            </div>
+            <div class="card">
+                <h2>消息内容</h2>
+                <div class="form-group">
+                    <label>标题</label>
+                    <input type="text" id="title" placeholder="例如: 系统告警">
+                </div>
+                <div class="form-group">
+                    <label>内容 (支持Markdown)</label>
+                    <textarea id="content" placeholder="## 告警内容&#10;&#10;**服务**: order-service&#10;**状态**: 异常&#10;**时间**: 14:32:15&#10;&#10;请立即处理!">## ⚠️ 系统告警
+
+**服务**: order-service
+**状态**: CPU使用率 95%
+**时间**: 14:32:15
+
+请相关同事立即处理！</textarea>
+                </div>
+                <div class="form-group">
+                    <label>消息类型</label>
+                    <select id="msgType">
+                        <option value="markdown">Markdown</option>
+                        <option value="text">纯文本</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>@手机号 (逗号分隔)</label>
+                    <input type="text" id="atMobiles" placeholder="13800138000,13900139000">
+                </div>
+                <button onclick="sendMessage()" id="sendBtn">🚀 发送消息</button>
+                <div class="result-list" id="sendResult"></div>
+            </div>
+        </div>
+
+        <!-- 消息模板 -->
+        <div class="panel" id="panel-templates">
+            <div class="card">
+                <h2>内置消息模板</h2>
+                <div class="template-grid" id="templateGrid"></div>
+                <div id="templateDetail"></div>
+            </div>
+        </div>
+
+        <!-- 签名算法 -->
+        <div class="panel" id="panel-sign">
+            <div class="card">
+                <h2>各平台签名算法演示</h2>
+                <p style="color:#666; font-size:14px; margin-bottom:14px;">点击下方按钮查看各平台的签名计算结果</p>
+                <button onclick="loadSignDemo()">🔏 生成签名演示</button>
+                <div class="sign-grid" id="signGrid" style="margin-top:16px;"></div>
+            </div>
+        </div>
+
+        <!-- 发送历史 -->
+        <div class="panel" id="panel-history">
+            <div class="card">
+                <h2>发送历史</h2>
+                <button onclick="loadHistory()" style="margin-bottom:14px;">🔄 刷新</button>
+                <div id="historyList"></div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+let selectedPlatforms = new Set(['wecom', 'dingtalk', 'feishu']);
+const platformInfo = {
+    wecom: {name: '企业微信', icon: '💬'},
+    dingtalk: {name: '钉钉', icon: '📌'},
+    feishu: {name: '飞书', icon: '🐦'},
+};
+
+function switchTab(name) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    event.target.classList.add('active');
+    document.getElementById('panel-' + name).classList.add('active');
+    if (name === 'templates') loadTemplates();
+    if (name === 'history') loadHistory();
+}
+
+function renderPlatforms() {
+    const html = Object.entries(platformInfo).map(([key, info]) => {
+        const active = selectedPlatforms.has(key) ? 'active' : '';
+        return `<div class="platform-card ${active}" onclick="togglePlatform('${key}')">
+            <div class="icon">${info.icon}</div>
+            <div class="name">${info.name}</div>
+            <div class="status">${selectedPlatforms.has(key) ? '✓ 已选' : '未选'}</div>
+        </div>`;
+    }).join('');
+    document.getElementById('platforms').innerHTML = html;
+}
+
+function togglePlatform(key) {
+    if (selectedPlatforms.has(key)) selectedPlatforms.delete(key);
+    else selectedPlatforms.add(key);
+    renderPlatforms();
+}
+
+async function sendMessage() {
+    const btn = document.getElementById('sendBtn');
+    btn.innerHTML = '<span class="loader"></span> 发送中...';
+    btn.disabled = true;
+    const payload = {
+        title: document.getElementById('title').value,
+        content: document.getElementById('content').value,
+        msg_type: document.getElementById('msgType').value,
+        at_mobiles: document.getElementById('atMobiles').value.split(',').map(s => s.trim()).filter(s => s),
+        targets: Array.from(selectedPlatforms),
+    };
+    try {
+        const res = await fetch('/api/send', {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.error) { alert(data.error); return; }
+        showSendResult(data.results);
+    } catch(e) { alert('发送失败: ' + e); }
+    btn.innerHTML = '🚀 发送消息';
+    btn.disabled = false;
+}
+
+function showSendResult(results) {
+    const html = results.map(r => {
+        const statusClass = r.status === 'demo' ? 'demo' : (r.status === 'success' ? '' : 'fail');
+        const statusLabel = r.status === 'demo' ? '演示模式' : (r.status === 'success' ? '成功' : (r.status === 'simulated' ? '已模拟' : '失败'));
+        return `<div class="result-item ${statusClass}">
+            <div class="platform">${platformInfo[r.platform].icon} ${r.platform_name}
+                <span class="status status-${r.status === 'demo' ? 'demo' : (r.status === 'success' ? 'success' : 'fail')}">${statusLabel}</span>
+            </div>
+            <div style="font-size:13px; color:#666;">${r.message || ''}</div>
+            ${r.sign ? `<div style="font-size:12px; color:#888; margin-top:4px;">签名: <code>${r.sign}</code></div>` : ''}
+        </div>`;
+    }).join('');
+    document.getElementById('sendResult').innerHTML = html;
+}
+
+async function loadTemplates() {
+    const res = await fetch('/api/templates');
+    const data = await res.json();
+    const html = Object.entries(data.templates).map(([key, tpl]) => {
+        return `<div class="template-card" onclick="showTemplate('${key}')">
+            <h4>${tpl.name || key}</h4>
+            <p>${tpl.description || '消息模板'}</p>
+        </div>`;
+    }).join('');
+    document.getElementById('templateGrid').innerHTML = html;
+}
+
+function showTemplate(key) {
+    document.querySelectorAll('.template-card').forEach(c => c.classList.remove('active'));
+    event.target.closest('.template-card').classList.add('active');
+    const samples = {
+        alert: {time: '14:32:15', level: '🔴 严重', message: '数据库连接断开', scope: '订单服务', detail: '主库IP: 10.0.0.5'},
+        daily_report: {date: '2026-06-29', items: [{name: '新增用户', value: 1280, unit: '人'}, {name: '订单', value: 456, unit: '单'}], gen_time: '14:30:00'},
+        deploy_notify: {project: 'AI助理 v2.3.1', version: '2.3.1', env: '生产', status: '✅ 成功', duration: '2分18秒', url: 'https://example.com'},
+    };
+    const params = samples[key] || {};
+    fetch('/api/render_template', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({template: key, params: params})
+    }).then(r => r.json()).then(data => {
+        if (data.error) {
+            document.getElementById('templateDetail').innerHTML = `<div class="preview">${data.error}</div>`;
+        } else {
+            document.getElementById('templateDetail').innerHTML = `
+                <h3 style="color:#333; font-size:14px; margin:14px 0 8px;">渲染结果:</h3>
+                <div class="preview">${data.content}</div>`;
+        }
+    });
+}
+
+async function loadSignDemo() {
+    const res = await fetch('/api/sign_demo');
+    const data = await res.json();
+    const html = `
+        <div class="sign-card wecom">
+            <h4>💬 企业微信签名</h4>
+            <div style="font-size:12px; color:#888; margin-bottom:4px;">timestamp: ${data.timestamp}</div>
+            <div class="value">${data.wecom_sign}</div>
+        </div>
+        <div class="sign-card dingtalk">
+            <h4>📌 钉钉签名</h4>
+            <div style="font-size:12px; color:#888; margin-bottom:4px;">timestamp: ${data.timestamp}</div>
+            <div class="value">${data.dingtalk_sign}</div>
+        </div>
+        <div class="sign-card feishu">
+            <h4>🐦 飞书签名</h4>
+            <div style="font-size:12px; color:#888; margin-bottom:4px;">timestamp: ${data.timestamp}</div>
+            <div class="value">${data.feishu_sign}</div>
+        </div>
+    `;
+    document.getElementById('signGrid').innerHTML = html;
+}
+
+async function loadHistory() {
+    const res = await fetch('/api/history');
+    const data = await res.json();
+    if (!data.history.length) {
+        document.getElementById('historyList').innerHTML = '<div style="text-align:center; color:#999; padding:30px;">暂无发送记录</div>';
+        return;
+    }
+    const html = data.history.map(h => `
+        <div class="history-item">
+            <div class="time">${h.time} · ${h.targets.map(t => platformInfo[t]?.name || t).join(', ')}</div>
+            <div class="title">${h.title || '(无标题)'}</div>
+            <div class="content">${h.content.substring(0, 100)}${h.content.length > 100 ? '...' : ''}</div>
+        </div>
+    `).join('');
+    document.getElementById('historyList').innerHTML = html;
+}
+
+renderPlatforms();
+</script>
+</body>
+</html>

@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>自动化报表生成与推送系统</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif; background: linear-gradient(135deg, #9C27B0 0%, #4A148C 100%); min-height: 100vh; padding: 20px; }
+        .container { max-width: 1100px; margin: 0 auto; background: white; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); overflow: hidden; }
+        header { background: linear-gradient(135deg, #9C27B0 0%, #6A1B9A 100%); color: white; padding: 24px 32px; }
+        header h1 { font-size: 24px; margin-bottom: 4px; }
+        header p { opacity: 0.9; font-size: 14px; }
+        .github-link { float: right; color: white; text-decoration: none; font-size: 13px; opacity: 0.9; }
+        .content { padding: 32px; }
+        .card { background: #f8f9fa; border-radius: 8px; padding: 20px; margin-bottom: 20px; border: 1px solid #e0e0e0; }
+        .card h2 { color: #333; font-size: 16px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid #9C27B0; }
+        .form-group { margin-bottom: 14px; }
+        .form-group label { display: block; font-size: 13px; color: #555; margin-bottom: 6px; font-weight: 500; }
+        .form-group input, .form-group select { width: 100%; padding: 10px 14px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
+        button { background: #9C27B0; color: white; border: none; padding: 12px 24px; font-size: 15px; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-weight: 500; }
+        button:hover { background: #6A1B9A; transform: translateY(-1px); }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        .chart-config { background: white; padding: 14px; border-radius: 6px; margin-bottom: 10px; border-left: 3px solid #9C27B0; }
+        .chart-config .row { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 8px; align-items: end; }
+        .chart-config .field { display: flex; flex-direction: column; }
+        .chart-config label { font-size: 12px; color: #666; margin-bottom: 4px; }
+        .chart-config input, .chart-config select { padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; }
+        .remove-btn { background: #F44336; padding: 6px 12px; font-size: 13px; }
+        .data-preview { background: white; padding: 14px; border-radius: 6px; margin-top: 12px; }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: #9C27B0; color: white; padding: 10px; text-align: left; font-size: 13px; }
+        td { padding: 8px; border-bottom: 1px solid #eee; font-size: 13px; }
+        tr:hover td { background: #f3e5f5; }
+        .chart-display { background: white; padding: 16px; border-radius: 8px; margin-top: 14px; text-align: center; }
+        .chart-display img { max-width: 100%; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .chart-display h4 { color: #333; margin-bottom: 10px; font-size: 15px; }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin: 16px 0; }
+        .stat { background: linear-gradient(135deg, #9C27B0 0%, #6A1B9A 100%); color: white; padding: 16px; border-radius: 8px; text-align: center; }
+        .stat .num { font-size: 24px; font-weight: bold; }
+        .stat .label { font-size: 12px; opacity: 0.9; margin-top: 4px; }
+        .download-buttons { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+        .download-buttons a { padding: 10px 18px; border-radius: 6px; text-decoration: none; color: white; font-size: 14px; }
+        .btn-html { background: #FF9800; }
+        .btn-xlsx { background: #4CAF50; }
+        .download-buttons a:hover { opacity: 0.9; transform: translateY(-1px); }
+        .loader { display: inline-block; border: 3px solid #f3f3f3; border-top: 3px solid #9C27B0; border-radius: 50%; width: 16px; height: 16px; animation: spin 1s linear infinite; vertical-align: middle; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .empty { text-align: center; color: #999; padding: 30px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <a class="github-link" href="https://github.com/1538063230/python-tools-portfolio" target="_blank">GitHub源码 →</a>
+        <h1>📊 自动化报表生成与推送系统</h1>
+        <p>多数据源支持 · 自动生成图表 · HTML/Excel报表 · 定时调度</p>
+    </header>
+    <div class="content">
+        <div class="card">
+            <h2>数据源预览 (示例销售数据)</h2>
+            <div id="dataPreview"><div class="empty">加载中...</div></div>
+        </div>
+
+        <div class="card">
+            <h2>报表配置</h2>
+            <div class="form-group">
+                <label>报表名称</label>
+                <input type="text" id="reportName" value="每日销售数据报表">
+            </div>
+            <div id="chartConfigs"></div>
+            <button onclick="addChart()" style="background:#607D8B; margin-bottom:12px;">+ 添加图表</button>
+            <div>
+                <button onclick="generateReport()" id="genBtn">🚀 生成报表</button>
+            </div>
+        </div>
+
+        <div class="card" id="resultCard" style="display:none;">
+            <h2>报表结果</h2>
+            <div class="stats" id="stats"></div>
+            <div class="download-buttons" id="downloads"></div>
+            <div id="chartDisplay"></div>
+            <div class="data-preview" style="margin-top: 20px;">
+                <h3 style="color:#333; font-size:14px; margin-bottom:8px;">数据明细 (前10行)</h3>
+                <div style="overflow-x:auto;"><table id="dataTable"></table></div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+let columns = [];
+let chartCount = 0;
+
+async function loadData() {
+    const res = await fetch('/api/sample_data');
+    const data = await res.json();
+    if (data.error) { document.getElementById('dataPreview').innerHTML = data.error; return; }
+    columns = data.columns;
+    let html = `<p style="font-size:13px; color:#666; margin-bottom:8px;">共 ${data.total} 行 × ${columns.length} 列</p>`;
+    html += '<table><thead><tr>';
+    columns.forEach(c => html += `<th>${c}</th>`);
+    html += '</tr></thead><tbody>';
+    data.rows.slice(0, 5).forEach(r => {
+        html += '<tr>';
+        r.forEach(v => html += `<td>${v}</td>`);
+        html += '</tr>';
+    });
+    html += '</tbody></table>';
+    document.getElementById('dataPreview').innerHTML = html;
+    // 默认加一个折线图
+    addChart();
+}
+
+function addChart() {
+    chartCount++;
+    const id = chartCount;
+    const options = columns.map(c => `<option value="${c}">${c}</option>`).join('');
+    const html = `
+    <div class="chart-config" id="chart${id}">
+        <div class="row">
+            <div class="field">
+                <label>标题</label>
+                <input type="text" id="title${id}" value="图表${id}">
+            </div>
+            <div class="field">
+                <label>类型</label>
+                <select id="type${id}">
+                    <option value="line">折线图</option>
+                    <option value="bar">柱状图</option>
+                    <option value="pie">饼图</option>
+                </select>
+            </div>
+            <div class="field">
+                <label>X轴</label>
+                <select id="x${id}">${options}</select>
+            </div>
+            <div class="field">
+                <label>Y轴</label>
+                <select id="y${id}">${options}</select>
+            </div>
+        </div>
+        <button class="remove-btn" onclick="document.getElementById('chart${id}').remove()">删除</button>
+    </div>`;
+    document.getElementById('chartConfigs').insertAdjacentHTML('beforeend', html);
+}
+
+async function generateReport() {
+    const btn = document.getElementById('genBtn');
+    btn.innerHTML = '<span class="loader"></span> 生成中...';
+    btn.disabled = true;
+    const charts = [];
+    for (let i = 1; i <= chartCount; i++) {
+        const el = document.getElementById('chart' + i);
+        if (!el) continue;
+        charts.push({
+            title: document.getElementById('title' + i).value,
+            type: document.getElementById('type' + i).value,
+            x: document.getElementById('x' + i).value,
+            y: document.getElementById('y' + i).value,
+        });
+    }
+    const payload = {
+        name: document.getElementById('reportName').value,
+        charts: charts,
+        formats: ['html', 'xlsx'],
+    };
+    const res = await fetch('/api/generate', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    btn.innerHTML = '🚀 生成报表';
+    btn.disabled = false;
+    if (data.error) { alert(data.error); return; }
+    showResult(data);
+}
+
+function showResult(data) {
+    document.getElementById('resultCard').style.display = '';
+    document.getElementById('stats').innerHTML = `
+        <div class="stat"><div class="num">${data.charts.length}</div><div class="label">图表数</div></div>
+        <div class="stat"><div class="num">${data.data_preview.total_rows}</div><div class="label">数据行</div></div>
+        <div class="stat"><div class="num">${data.data_preview.columns.length}</div><div class="label">数据列</div></div>
+    `;
+    document.getElementById('downloads').innerHTML = `
+        <a class="btn-html" href="${data.downloads.html}" download>📥 下载HTML报表</a>
+        <a class="btn-xlsx" href="${data.downloads.xlsx}" download>📥 下载Excel报表</a>
+    `;
+    let html = '';
+    data.charts.forEach(c => {
+        html += `<div class="chart-display"><h4>${c.title}</h4><img src="${c.base64}"></div>`;
+    });
+    document.getElementById('chartDisplay').innerHTML = html;
+    // 数据表
+    let t = '<thead><tr>';
+    data.data_preview.columns.forEach(c => t += `<th>${c}</th>`);
+    t += '</tr></thead><tbody>';
+    data.data_preview.rows.forEach(r => {
+        t += '<tr>';
+        r.forEach(v => t += `<td>${v}</td>`);
+        t += '</tr>';
+    });
+    t += '</tbody>';
+    document.getElementById('dataTable').innerHTML = t;
+}
+
+loadData();
+</script>
+</body>
+</html>
