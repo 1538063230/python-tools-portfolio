@@ -11,10 +11,14 @@ env/
 .DS_Store
 output/
 scraped_data/
-reports/
 *.xlsx
 *.csv
-*.json
 !bots.json
 !report_config.json
-!sample_sales.csv
+!sample_*.csv
+!sales_*.csv
+!sample_data/sales_*.csv
+!sample_data/*.csv
+# 保留截图目录但忽略 run_log.txt
+screenshots/run_log.txt
+reports/

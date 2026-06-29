@@ -8,13 +8,13 @@
 
 ## 项目列表
 
-| 项目 | 说明 | 技术栈 | 适用场景 |
-|------|------|--------|----------|
-| [data_cleaner](./data_cleaner/) | CSV智能数据清洗与合并 | pandas, openpyxl | 数据处理、ETL、报表预处理 |
-| [web_scraper](./web_scraper/) | 多平台网页数据采集器 | requests, BS4, pandas | 爬虫、数据采集、竞品监控 |
-| [file_manager](./file_manager/) | GUI批量文件管理工具 | tkinter, Pillow | 桌面工具、批量处理 |
-| [report_generator](./report_generator/) | 自动化报表生成与推送 | pandas, matplotlib, schedule | 日报/周报、数据可视化 |
-| [multi_bot](./multi_bot/) | 多平台消息推送机器人 | requests, Flask, jinja2 | 告警通知、CI/CD通知 |
+| # | 项目 | 说明 | 一键运行 | 截图 |
+|---|------|------|----------|------|
+| 1 | [data_cleaner](./data_cleaner/) | CSV智能数据清洗与合并 | `python data_cleaner.py -i sample_data` | [运行日志](./data_cleaner/screenshots/run_log.txt) |
+| 2 | [web_scraper](./web_scraper/) | 多平台网页数据采集器 | `python demo.py` | [运行日志](./web_scraper/screenshots/run_log.txt) |
+| 3 | [file_manager](./file_manager/) | GUI批量文件管理工具 | `python demo.py` / `python file_manager.py` | [GUI截图](./file_manager/screenshots/gui_mockup.png) |
+| 4 | [report_generator](./report_generator/) | 自动化报表生成与推送 | `python report_generator.py -c report_config.json --once --no-send` | [运行日志](./report_generator/screenshots/run_log.txt) |
+| 5 | [multi_bot](./multi_bot/) | 多平台消息推送机器人 | `python demo.py` | [运行日志](./multi_bot/screenshots/run_log.txt) |
 
 ## 开发方式
 

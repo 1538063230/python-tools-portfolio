@@ -32,109 +32,13 @@ from tkinter import (
     ttk, END, VERTICAL, HORIZONTAL, BOTH, LEFT, RIGHT, TOP, BOTTOM,
     X, Y, W, E, N, S, WORD, DISABLED, NORMAL, SINGLE, EXTENDED,
 )
-from tkinterdnd2 import TkinterDnD, DND_FILES
+from file_manager_core import FileManager  # noqa: F401
 
-
-class FileManager:
-    """文件操作核心引擎"""
-
-    @staticmethod
-    def rename_files(directory: str, pattern: str, replace: str,
-                     use_regex: bool = False,
-                     prefix: str = "", suffix: str = "",
-                     start_num: int = 1, pad: int = 3) -> list[tuple]:
-        """批量重命名文件"""
-        results = []
-        files = sorted(Path(directory).iterdir())
-        files = [f for f in files if f.is_file()]
-
-        for i, file_path in enumerate(files, start=start_num):
-            name, ext = file_path.stem, file_path.suffix
-
-            if use_regex:
-                new_name = re.sub(pattern, replace, name)
-            else:
-                new_name = name.replace(pattern, replace)
-
-            new_name = f"{prefix}{new_name}{suffix}"
-            if not new_name.strip():
-                new_name = f"file_{str(i).zfill(pad)}"
-
-            new_path = file_path.with_name(f"{new_name}{ext}")
-
-            # 避免重名
-            counter = 1
-            while new_path.exists():
-                new_path = file_path.with_name(f"{new_name}_{counter}{ext}")
-                counter += 1
-
-            file_path.rename(new_path)
-            results.append((str(file_path), str(new_path)))
-
-        return results
-
-    @staticmethod
-    def organize_by_extension(directory: str) -> dict:
-        """按扩展名分类整理"""
-        stats = defaultdict(list)
-        for f in Path(directory).iterdir():
-            if f.is_file():
-                ext = f.suffix.lower().lstrip(".") or "no_ext"
-                target_dir = Path(directory) / ext
-                target_dir.mkdir(exist_ok=True)
-                new_path = target_dir / f.name
-
-                counter = 1
-                while new_path.exists():
-                    new_path = target_dir / f"{f.stem}_{counter}{f.suffix}"
-                    counter += 1
-
-                shutil.move(str(f), str(new_path))
-                stats[ext].append(str(new_path))
-
-        return dict(stats)
-
-    @staticmethod
-    def find_duplicates(directory: str) -> dict:
-        """查找重复文件 (基于MD5哈希)"""
-        hash_map = defaultdict(list)
-        for f in Path(directory).rglob("*"):
-            if f.is_file():
-                try:
-                    file_hash = hashlib.md5(f.read_bytes()).hexdigest()
-                    hash_map[file_hash].append(str(f))
-                except (OSError, PermissionError):
-                    continue
-
-        return {h: paths for h, paths in hash_map.items() if len(paths) > 1}
-
-    @staticmethod
-    def get_file_stats(directory: str) -> dict:
-        """获取目录文件统计"""
-        total_size = 0
-        ext_count = defaultdict(int)
-        ext_size = defaultdict(int)
-        file_count = 0
-
-        for f in Path(directory).rglob("*"):
-            if f.is_file():
-                try:
-                    size = f.stat().st_size
-                    total_size += size
-                    ext = f.suffix.lower() or "无扩展名"
-                    ext_count[ext] += 1
-                    ext_size[ext] += size
-                    file_count += 1
-                except OSError:
-                    continue
-
-        return {
-            "file_count": file_count,
-            "total_size": total_size,
-            "total_size_mb": round(total_size / (1024 * 1024), 2),
-            "ext_count": dict(ext_count),
-            "ext_size": {k: round(v / (1024 * 1024), 2) for k, v in ext_size.items()},
-        }
+try:
+    from tkinterdnd2 import TkinterDnD, DND_FILES  # noqa: F401
+except ImportError:
+    TkinterDnD = None
+    DND_FILES = None
 
 
 class FileManagerGUI:

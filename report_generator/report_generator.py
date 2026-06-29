@@ -156,7 +156,23 @@ class ReportGenerator:
     def generate_charts(self) -> list[str]:
         """生成图表"""
         chart_paths = []
-        plt.rcParams["font.sans-serif"] = ["SimHei", "DejaVu Sans"]
+        # 尝试多个中文字体, 找不到就用默认
+        try:
+            from matplotlib.font_manager import findSystemFonts
+            chinese_fonts = ["Noto Sans CJK SC", "WenQuanYi Zen Hei",
+                              "WenQuanYi Micro Hei", "Source Han Sans CN",
+                              "SimHei", "Microsoft YaHei"]
+            available = set()
+            for f in findSystemFonts():
+                for font_name in chinese_fonts:
+                    if font_name.lower() in f.lower():
+                        available.add(font_name)
+            if available:
+                plt.rcParams["font.sans-serif"] = list(available) + ["DejaVu Sans"]
+            else:
+                plt.rcParams["font.sans-serif"] = ["DejaVu Sans"]
+        except Exception:
+            plt.rcParams["font.sans-serif"] = ["DejaVu Sans"]
         plt.rcParams["axes.unicode_minus"] = False
 
         for chart_def in self.config.charts:

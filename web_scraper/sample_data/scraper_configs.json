@@ -1,0 +1,23 @@
+{"configurations": [
+    {
+        "name": "B站热门视频",
+        "url": "https://www.bilibili.com/v/popular/rank/all",
+        "container": ".rank-item",
+        "fields": {
+            "title": ".title",
+            "play_count": ".play-text",
+            "author": ".author"
+        }
+    },
+    {
+        "name": "GitHub Trending",
+        "url": "https://github.com/trending",
+        "container": "article.Box-row",
+        "fields": {
+            "title": "h2 a",
+            "description": "p",
+            "stars": "a[href*='stargazers']",
+            "language": "[itemprop=programmingLanguage]"
+        }
+    }
+]}
